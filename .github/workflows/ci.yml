@@ -7,7 +7,7 @@ on:
 # apenas teste
   push:
     branches:
-      - main    
+      - main
 
 jobs:
   test:
