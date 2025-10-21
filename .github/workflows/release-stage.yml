@@ -2,8 +2,7 @@ name: Release Candidate → Stage
 
 on:
   push:
-    # branches: [ 'release/*' ]
-    branches: [ 'release/*', main ]
+    branches: [ 'release/*' ]
   workflow_dispatch:
     inputs:
       rc_tag:
