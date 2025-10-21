@@ -2,8 +2,7 @@ name: Hotfix (a partir de main)
 
 on:
   push:
-    # branches: [ 'hotfix/*' ]
-    branches: [ 'hotfix/*', main ]   # apenas teste
+    branches: [ 'hotfix/*' ]
   workflow_dispatch:
 
 env:

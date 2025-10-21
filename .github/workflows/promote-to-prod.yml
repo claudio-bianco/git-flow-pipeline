@@ -1,10 +1,10 @@
 name: Promote to PROD (Docker Hub por digest)
 
 on:
-  push:
-    branches: [ main ]     # ao concluir release/hotfix
-    tags:
-      - 'v*.*.*'           # também por tag semântica
+#   push:
+#     branches: [ main ]     # ao concluir release/hotfix
+#     tags:
+#       - 'v*.*.*'           # também por tag semântica
   workflow_dispatch:
     inputs:
       source_tag:
