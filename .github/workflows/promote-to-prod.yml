@@ -19,12 +19,12 @@ on:
 env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME || 'minha-app' }}
-  IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+  IMAGE: ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.IMAGE_NAME }}
 
 jobs:
   promote:
     runs-on: ubuntu-latest
-    environment: prod
+    # environment: prod
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
