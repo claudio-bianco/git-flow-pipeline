@@ -2,9 +2,7 @@ name: Build DEV (develop → Docker Hub)
 
 on:
   push:
-    # branches: [ develop ]
-# apenas teste
-    branches: [ develop, main ] 
+    branches: [ develop ]
 
 env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
