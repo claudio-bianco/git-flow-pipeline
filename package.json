@@ -1,0 +1,38 @@
+{
+  "name": "node-gitflow-sample",
+  "version": "0.1.0",
+  "description": "App Node.js mínimo para testar Git-Flow (develop, feature/*, release/*, hotfix/*, main).",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "test": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:watch": "NODE_ENV=test jest --watch"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "gitflow",
+    "sample"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^16.4.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3",
+    "supertest": "^7.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    image: node-gitflow-sample:dev
+    environment:
+      - PORT=3000
+      - ENV_NAME=docker
+    ports:
+      - '3000:3000'
+    command: ['node', 'src/index.js']
