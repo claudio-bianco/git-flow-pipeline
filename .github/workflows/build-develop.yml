@@ -9,7 +9,7 @@ on:
 env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
   IMAGE_NAME: ${{ vars.IMAGE_NAME || 'minha-app' }}
-  IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+  IMAGE: ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.IMAGE_NAME }}
   PLATFORMS: linux/amd64
 
 jobs:
