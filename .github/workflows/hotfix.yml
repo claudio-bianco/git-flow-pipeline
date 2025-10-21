@@ -1,0 +1,37 @@
+name: Hotfix (a partir de main)
+
+on:
+  push:
+    branches: [ 'hotfix/*' ]
+  workflow_dispatch:
+
+env:
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'minha-app' }}
+  IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+
+jobs:
+  build_hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push (hotfix tag transitória)
+        id: build
+        run: |
+          set -euo pipefail
+          mkdir -p .metadata
+          docker buildx build \
+            --tag "${IMAGE}:hotfix-candidate" \
+            --push \
+            --metadata-file .metadata/build.json \
+            .
+          DIGEST=$(jq -r '.["containerimage.digest"]' .metadata/build.json)
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+  # opcional: deploy em staging para validação rápida do hotfix

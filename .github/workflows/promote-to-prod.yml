@@ -1,0 +1,84 @@
+name: Promote to PROD (Docker Hub por digest)
+
+on:
+  push:
+    branches: [ main ]     # ao concluir release/hotfix
+    tags:
+      - 'v*.*.*'           # também por tag semântica
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: "Tag origem (rc-current ou vX.Y.Z)"
+        required: false
+        default: "rc-current"
+      target_tags:
+        description: "Tags destino (ex.: prod,latest)"
+        required: false
+        default: "prod,latest"
+
+env:
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'minha-app' }}
+  IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Obter digest da origem
+        id: get_digest
+        run: |
+          set -euo pipefail
+          SRC="${{ github.event.inputs.source_tag || 'rc-current' }}"
+          # Se o push veio de tag (vX.Y.Z), preferir a tag
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            SRC="${GITHUB_REF_NAME}"
+          fi
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${SRC}" --format '{{ .Digest }}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "src_tag=${SRC}" >> "$GITHUB_OUTPUT"
+
+      - name: Criar tags PROD apontando para o mesmo digest
+        run: |
+          set -euo pipefail
+          TARGETS="${{ github.event.inputs.target_tags || 'prod,latest' }}"
+          IFS=',' read -ra TAGS <<< "$TARGETS"
+          ARGS=()
+          for T in "${TAGS[@]}"; do
+            T=$(echo "$T" | xargs)
+            [ -n "$T" ] && ARGS+=("-t" "${IMAGE}:${T}")
+          done
+          docker buildx imagetools create \
+            "${ARGS[@]}" \
+            "${IMAGE}@${{ steps.get_digest.outputs.digest }}"
+
+  deploy_prod:
+    runs-on: ubuntu-latest
+    needs: promote
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Resolver digest da tag 'prod'
+        id: dig
+        run: |
+          set -euo pipefail
+          D=$(docker buildx imagetools inspect "${{ env.IMAGE }}:prod" --format '{{ .Digest }}')
+          echo "digest=${D}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy (ex. K8s)
+        run: |
+          IMG="${{ env.IMAGE }}@${{ steps.dig.outputs.digest }}"
+          echo "Deployando imagem imutável: ${IMG}"
+          # kubectl -n prod set image deploy/minha-app minha-app="${IMG}"

@@ -1,0 +1,82 @@
+name: Release Candidate → Stage
+
+on:
+  push:
+    branches: [ 'release/*' ]
+  workflow_dispatch:
+    inputs:
+      rc_tag:
+        description: "Tag RC (ex.: v1.4.0-rc.3)"
+        required: false
+
+env:
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || 'minha-app' }}
+  IMAGE: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+  PLATFORMS: linux/amd64
+
+jobs:
+  build_rc:
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Determinar tag RC
+        id: meta
+        run: |
+          set -euo pipefail
+          # Preferir entrada manual; senão derive de package.json + contador externo.
+          echo "rc_tag=${{ github.event.inputs.rc_tag || format('v{0}-rc.{1}', '0.0.0', 1) }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & Push RC
+        id: build
+        run: |
+          set -euo pipefail
+          mkdir -p .metadata
+          docker buildx build \
+            --platform "${PLATFORMS}" \
+            --tag "${IMAGE}:${{ steps.meta.outputs.rc_tag }}" \
+            --push \
+            --metadata-file .metadata/build.json \
+            .
+          DIGEST=$(jq -r '.["containerimage.digest"]' .metadata/build.json)
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Alias 'rc-current' → mesmo digest
+        run: |
+          docker buildx imagetools create \
+            -t "${IMAGE}:rc-current" \
+            "${IMAGE}@${{ steps.build.outputs.digest }}"
+
+  deploy_stage:
+    runs-on: ubuntu-latest
+    needs: build_rc
+    environment:
+      name: stage
+      url: ${{ steps.info.outputs.url }}
+    steps:
+      - name: Obter digest rc-current
+        id: get_digest
+        run: |
+          set -euo pipefail
+          DIGEST=$(docker buildx imagetools inspect "${{ env.IMAGE }}:rc-current" --format '{{ .Digest }}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Configurar kubectl (ajuste seu cluster)
+        run: |
+          echo "kubectl setup aqui (EKS/GKE/AKS)…"
+
+      - name: Deploy (K8s) por digest
+        id: info
+        run: |
+          set -euo pipefail
+          IMG="${{ env.IMAGE }}@${{ steps.get_digest.outputs.digest }}"
+          echo "Usando imagem imutável: $IMG"
+          # kubectl -n stage set image deploy/minha-app minha-app="${IMG}"
+          echo "url=https://stage.example.com" >> "$GITHUB_OUTPUT"
